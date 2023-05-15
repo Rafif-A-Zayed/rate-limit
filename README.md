@@ -1,4 +1,4 @@
-# Logging-lib
+# Rate-limit-lib
 
 Library to handle rate limit logic
 
@@ -64,9 +64,39 @@ implementation 'com.gotrah:rate-limit-lib:1.0.0'
 
 - Make sure blow props config added to application.yml file
 
+  - **rate-limit.enabled**: to enable or disable the feature if not added will be true
+  - **rate-limit.defaults**: default values for all algs
+  -
+    - algorithm: default alg should be used if not provided will be fixed-window
+    - fixedWindow: parent config for fixed window implementation
+  - **clients**: list of client configuration in-case you want to override default values for specific client, client identified by client id
+  -
+    - id: client identifier
+    - enabled: by default true, if you want to disable rate limit for specific client set it by false
+    - perUser: by default rate limit applied by the value configured on annotation, to make it work per user for this client set this prob by true
+    - for each alg add tag Ex. fixedWindow
+
 ``` yaml
 application:
   service-name: COUNTER_SERVICE
+rate-limit:
+  enabled: false
+  defaults:
+    fixedWindow:
+      limit: 10
+      per: 60
+  clients:
+    - id: "Company-X"
+      perUser: true
+      fixedWindow:
+        limit: 10
+        per: 60
+
+    - id: "Company-Y"
+      enabled: false
+      fixedWindow:
+        limit: 10
+        per: 60
 spring:
   redis:
     host: ${REDIS_HOST}
@@ -74,30 +104,19 @@ spring:
     password: test
     timeout: 6000
 ```
-- Implement UserIdentifier  interface to return the user unique identifier that can be used in Key-level rate limiting implementation
-
-## Description
-
-In this lib provide implementation for **Fixed Window**
-
-    @RateLimit( perUser= true, FixedWindow = @FixedWindow( limit = 5 , per = 60 ))
-
-    @RateLimit( perUser= true, FixedWindow = @FixedWindow( limitExp = "l.r" , perExp = "per.exp" ))
-
-    @RateLimit( perApi= true, FixedWindow = @FixedWindow( limit = 5 , per = 60 ))
-
-    @RateLimit( perApi= true, FixedWindow = @FixedWindow( limitExp = "l.r" , perExp = "per.exp" ))
 
 
+- Implement ClientIdentifier interface to return the client unique identifier that can be used to get client config from prob file
+- Implement UserIdentifier interface to return the user unique identifier that can be used in Key-level rate limiting implementation
+- add below annotation on APIs controller method to add rate limit feature on it
 
-**perUser** implement Key-level rate limiting , key user identifier
 
-**perApi** implement API-level rate limiting
+    @RateLimit()
 
-Only one of them per method can be used , method annotated by @RateLimit  with perApi= true and perUser= true
-will throw runtime exception
+    @RateLimit( perUser= true)
 
-**FixedWindow** implement Fixed Window algorithm
-- per: configure window time
-- limit: configure number of accepted request per window time 
+
+**perUser** implement Key-level rate limiting , key user identifier by default annotation work per API
+
+
 
